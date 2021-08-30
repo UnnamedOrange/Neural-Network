@@ -8,7 +8,7 @@ class vgg19(torch.nn.Module):
 
         self.in_width = in_width
         self.in_height = in_height
-        self.factor = 2**5  # 5 for the number of MaxPool.
+        self.factor = 2**4  # 4 for the number of MaxPool.
         self.out_width = in_width // self.factor
         self.out_height = in_height // self.factor
 
@@ -88,7 +88,7 @@ class vgg19(torch.nn.Module):
             ('norm5-4', torch.nn.BatchNorm2d(512)),
             ('relu5-4', torch.nn.ReLU()),
 
-            ('pool5', torch.nn.MaxPool2d((2, 2), stride=(2, 2))),
+            # ('pool5', torch.nn.MaxPool2d((2, 2), stride=(2, 2))),
         ]))
         self.block6 = torch.nn.Sequential(OrderedDict([
             ('flatten6-1', torch.nn.Flatten()),
@@ -104,11 +104,12 @@ class vgg19(torch.nn.Module):
 
             ('fc6-3', torch.nn.Linear(4096, 10)),
             ('norm6-3', torch.nn.BatchNorm1d(10)),
-            ('relu6-3', torch.nn.Softmax(dim=-1)),
+            ('relu6-3', torch.nn.ReLU()),
+            ('softmax6-3', torch.nn.Softmax(dim=-1)),
         ]))  # Transfer train block6.
 
         self.optimizer = torch.optim.SGD(
-            self.parameters(), lr=0.01, momentum=0.9)
+            self.parameters(), lr=0.01, momentum=0.9, nesterov=True)
         self.loss_function = torch.nn.CrossEntropyLoss()
 
     def forward(self, data_in):

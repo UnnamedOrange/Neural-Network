@@ -1,37 +1,53 @@
-import math
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
+
+from collections import defaultdict
 import os
+from os import PathLike
 
 
-def train(net: torch.nn.Module, is_gpu: bool,
+def train(net: nn.Module,  # With optimizer and loss_function.
           dataset: torch.utils.data.TensorDataset,
-          batch_size: int, num_workers: int, n_epoch: int,
-          vis, vis_win: list, vis_options: dict,
-          model_file='latest_model.pt',
+          is_gpu: bool = torch.cuda.is_available(),
+          batch_size: int = None,
+          num_workers: int = 0,
+          n_epoch: int = None,
+          model_file: PathLike = 'latest_model.pt',
+          tb: SummaryWriter = None,
           on_test=None):
 
+    if batch_size is None:
+        batch_size = len(dataset)
+
+    if n_epoch is None:
+        n_epoch = 1000000000
+
     if model_file and os.path.exists(model_file):
-        net.load_state_dict(torch.load(model_file))
-        print("Model loaded.")
+        try:
+            net.load_state_dict(torch.load(model_file))
+            print("[Info] Model loaded.")
+        except:
+            print("[Warning] Fail to load model. Skip loading.")
     else:
-        print("No model to load.")
+        print("[Info] No model to load.")
 
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+        dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
-    n_batch = n_epoch * math.ceil(len(dataset) / batch_size)
-    losses = torch.zeros(size=(n_batch,))
-    indexes = torch.arange(n_batch)
-    batch_index = 0
+    if is_gpu:
+        net = net.cuda()
+    else:
+        net = net.cpu()
 
     try:
+        batch_index = 0
+        net.optimizer.state = defaultdict(dict)
         for e in range(n_epoch):
             sum_loss = 0
             for i, (data, tag) in enumerate(data_loader):
-                if is_gpu:
-                    net = net.cuda()
-                else:
-                    net = net.cpu()
                 net.train()
                 net.optimizer.zero_grad()
 
@@ -43,15 +59,13 @@ def train(net: torch.nn.Module, is_gpu: bool,
                 loss.backward()
                 net.optimizer.step()
 
-                crt_loss = loss.detach().cpu().item()
+                crt_loss = loss.detach().cpu()
                 sum_loss += crt_loss
-                average_loss = crt_loss / len(data)
-                losses[batch_index] = average_loss
                 batch_index += 1
-                if vis:
-                    vis_win[0] = vis.line(losses[:batch_index], indexes[:batch_index],
-                                          win=vis_win[0], name='loss_per_batch',
-                                          opts=vis_options)
+
+            average_loss = sum_loss / len(data_loader)
+            if tb:
+                tb.add_scalar('Train Loss Trace per Epoch', average_loss, e)
 
             if on_test:
                 on_test()
