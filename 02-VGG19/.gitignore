@@ -1,0 +1,5 @@
+# Model
+latest_model.pt
+
+# Dataset
+cifar-10-batches-py/
