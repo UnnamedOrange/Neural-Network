@@ -47,6 +47,7 @@ def train(net: nn.Module,  # With optimizer and loss_function.
         net.optimizer.state = defaultdict(dict)
         for e in range(n_epoch):
             sum_loss = 0
+            sum_correct = 0
             for i, (data, tag) in enumerate(data_loader):
                 net.train()
                 net.optimizer.zero_grad()
@@ -61,11 +62,17 @@ def train(net: nn.Module,  # With optimizer and loss_function.
 
                 crt_loss = loss.detach().cpu()
                 sum_loss += crt_loss
+
+                pred = output.detach().max(1)[1]
+                sum_correct += pred.eq(tag.view_as(pred)).sum().cpu()
+
                 batch_index += 1
 
-            average_loss = sum_loss / len(data_loader)
+            average_loss = sum_loss / len(dataset)
+            accuracy = sum_correct / len(dataset)
             if tb:
                 tb.add_scalar('Train Loss Trace per Epoch', average_loss, e)
+                tb.add_scalar('Train Accuracy Trace per Epoch', accuracy, e)
 
             if on_test:
                 on_test()
