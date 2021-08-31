@@ -9,7 +9,7 @@ import os
 from os import PathLike
 
 
-def train(net: nn.Module,  # With optimizer and loss_function.
+def train(net: nn.Module,  # With optimizer, scheduler and loss_function.
           dataset: torch.utils.data.TensorDataset,
           is_gpu: bool = torch.cuda.is_available(),
           batch_size: int = None,
@@ -67,6 +67,7 @@ def train(net: nn.Module,  # With optimizer and loss_function.
                 sum_correct += pred.eq(tag.view_as(pred)).sum().cpu()
 
                 batch_index += 1
+            net.scheduler.step()
 
             average_loss = sum_loss / len(dataset)
             accuracy = sum_correct / len(dataset)

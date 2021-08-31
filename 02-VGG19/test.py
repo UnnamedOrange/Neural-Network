@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from os import PathLike
 
 
-def test(net: nn.Module,  # With optimizer and loss_function.
+def test(net: nn.Module,  # With loss_function.
          dataset: torch.utils.data.TensorDataset,
          index: int,
          batch_size: int = None,

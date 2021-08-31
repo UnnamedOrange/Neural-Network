@@ -108,9 +108,11 @@ class vgg19(torch.nn.Module):
             ('softmax6-3', torch.nn.Softmax(dim=-1)),
         ]))  # Transfer train block6.
 
+        self.loss_function = torch.nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(
             self.parameters(), lr=0.01, momentum=0.9, nesterov=True)
-        self.loss_function = torch.nn.CrossEntropyLoss()
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=20)
 
     def forward(self, data_in):
         output = self.block1(data_in)
